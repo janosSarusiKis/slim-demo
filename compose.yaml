@@ -1,0 +1,48 @@
+# Runs on the cloud VM (or locally for rehearsal).
+#
+#   docker compose up -d slim        # the SLIM node, the only open port
+#   docker compose up -d agent       # Act 3: the agent's new home
+#   docker compose up -d agent-go    # ...or the same agent rewritten in Go
+#   docker compose run --rm ticker   # the cloud assistant (the caller)
+services:
+  slim:
+    image: ghcr.io/agntcy/slim:3.4.6
+    command: ["/slim", "--config", "/config.yaml"]
+    ports:
+      - "46357:46357"
+    volumes:
+      - ./slim/config.yaml:/config.yaml:ro
+
+  agent:
+    build: .
+    image: slim-demo:latest
+    profiles: ["agent"]
+    environment:
+      SLIM_URL: ${AGENT_SLIM_URL:-http://slim:46357}
+      SLIM_SHARED_SECRET: ${SLIM_SHARED_SECRET:?set SLIM_SHARED_SECRET in .env}
+      AGENT_LOCATION: cloud
+      NOTES_DIR: /app/notes/cloud
+    stop_grace_period: 5s
+
+  agent-go:
+    build:
+      context: .
+      dockerfile: go_agent/Dockerfile
+    image: slim-demo-go:latest
+    profiles: ["agent"]
+    environment:
+      SLIM_URL: ${AGENT_SLIM_URL:-http://slim:46357}
+      SLIM_SHARED_SECRET: ${SLIM_SHARED_SECRET:?set SLIM_SHARED_SECRET in .env}
+      AGENT_LOCATION: cloud
+      NOTES_DIR: /app/notes/cloud
+    stop_grace_period: 5s
+
+  ticker:
+    build: .
+    image: slim-demo:latest
+    profiles: ["ticker"]
+    command: ["python", "-m", "slim_demo.ticker"]
+    tty: true
+    environment:
+      SLIM_URL: ${TICKER_SLIM_URL:-http://slim:46357}
+      SLIM_SHARED_SECRET: ${SLIM_SHARED_SECRET:?set SLIM_SHARED_SECRET in .env}

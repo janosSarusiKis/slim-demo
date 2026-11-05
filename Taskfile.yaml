@@ -1,0 +1,49 @@
+version: "3"
+
+dotenv: [".env"]
+
+tasks:
+  secret:
+    desc: Generate a random shared secret into .env
+    status: [test -f .env]
+    cmds:
+      - cp .env.example .env
+      - sed -i '' "s|^SLIM_SHARED_SECRET=.*|SLIM_SHARED_SECRET=$(openssl rand -hex 32)|" .env
+
+  node:
+    desc: Start the SLIM node in Docker
+    cmds: [docker compose up -d slim]
+
+  agent:
+    desc: Run the home agent on this machine (Act 2)
+    cmds:
+      - uv run python -m slim_demo.agent {{.CLI_ARGS}}
+
+  ticker:
+    desc: Run the cloud assistant that calls the agent every second
+    cmds:
+      - uv run python -m slim_demo.ticker {{.CLI_ARGS}}
+
+  agent:cloud:
+    desc: Start the agent's container copy (Act 3)
+    cmds: [docker compose up -d --build agent]
+
+  agent:cloud:stop:
+    desc: Stop the container copy
+    cmds: [docker compose stop agent]
+
+  agent:go:
+    desc: Start the Go rewrite of the agent in a container (encore)
+    cmds: [docker compose up -d --build agent-go]
+
+  agent:go:stop:
+    desc: Stop the Go container
+    cmds: [docker compose stop agent-go]
+
+  ports:
+    desc: Show which processes on this machine listen on TCP ports
+    cmds: [lsof -nP -iTCP -sTCP:LISTEN]
+
+  down:
+    desc: Stop everything in Docker
+    cmds: [docker compose --profile agent --profile ticker down]

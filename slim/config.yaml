@@ -1,0 +1,21 @@
+# Single SLIM node for the demo. Agents and clients connect out to it; it is
+# the only component that listens on a port.
+tracing:
+  log_level: info
+  display_thread_names: false
+  display_thread_ids: false
+
+runtime:
+  n_cores: 0
+  thread_name: "slim-data-plane"
+  drain_timeout: 10s
+
+services:
+  slim/0:
+    node_id: slim-demo
+    dataplane:
+      servers:
+        - endpoint: "0.0.0.0:46357"
+          tls:
+            insecure: true
+      clients: []
