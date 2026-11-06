@@ -2,3 +2,6 @@
 .git
 .env
 **/__pycache__
+**/bin
+**/obj
+**/.nuget-packages

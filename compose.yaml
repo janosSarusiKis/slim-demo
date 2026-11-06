@@ -4,10 +4,20 @@
 #   docker compose up -d agent       # Act 3: the agent's new home
 #   docker compose up -d agent-go    # ...or the same agent rewritten in Go
 #   docker compose run --rm ticker   # the cloud assistant (the caller)
+#
+# Farm demo (see README):
+#   docker compose --profile farm up -d   # GH2, pest scout, sprayer, agronomist
+#   gh1-backup is started and stopped by the guardian, not by hand.
+
+x-farm-env: &farm-env
+  SLIM_URL: ${AGENT_SLIM_URL:-http://slim:46357}
+  SLIM_SHARED_SECRET: ${SLIM_SHARED_SECRET:?set SLIM_SHARED_SECRET in .env}
+
 services:
   slim:
     image: ghcr.io/agntcy/slim:3.4.6
     command: ["/slim", "--config", "/config.yaml"]
+    restart: unless-stopped  # come back after a VM or Docker restart
     ports:
       - "46357:46357"
     volumes:
@@ -46,3 +56,58 @@ services:
     environment:
       SLIM_URL: ${TICKER_SLIM_URL:-http://slim:46357}
       SLIM_SHARED_SECRET: ${SLIM_SHARED_SECRET:?set SLIM_SHARED_SECRET in .env}
+
+  gh2:
+    image: slim-demo:latest
+    pull_policy: never  # built locally by `task farm:build`
+    profiles: ["farm"]
+    command: ["python", "-m", "farm.greenhouse", "--id", "gh2"]
+    environment:
+      <<: *farm-env
+      AGENT_LOCATION: GH2 box
+    stop_grace_period: 5s
+
+  scout:
+    image: slim-demo:latest
+    pull_policy: never  # built locally by `task farm:build`
+    profiles: ["farm"]
+    command: ["python", "-m", "farm.scout"]
+    environment: *farm-env
+    stop_grace_period: 5s
+
+  # The spray rig's software, written in .NET by "the manufacturer".
+  # farm/sprayer.py is the same agent in Python, if you want to swap it back.
+  sprayer:
+    build:
+      context: .
+      dockerfile: dotnet_sprayer/Dockerfile
+    image: slim-demo-dotnet:latest
+    profiles: ["farm"]
+    environment:
+      <<: *farm-env
+      AGENT_LOCATION: farm shed
+    stop_grace_period: 5s
+
+  agronomist:
+    image: slim-demo-go:latest
+    pull_policy: never  # built locally by `task farm:build`
+    profiles: ["farm"]
+    command: ["agronomist"]
+    environment:
+      <<: *farm-env
+      AGENT_LOCATION: office in town
+    stop_grace_period: 5s
+
+  # The spare computer in greenhouse 1. Only the guardian starts it.
+  gh1-backup:
+    image: slim-demo:latest
+    pull_policy: never  # built locally by `task farm:build`
+    profiles: ["backup"]
+    command: ["python", "-m", "farm.greenhouse", "--id", "gh1", "--role", "backup"]
+    environment:
+      <<: *farm-env
+      AGENT_LOCATION: GH1 backup box
+      STATE_FILE: /app/state/gh1.json
+    volumes:
+      - ./state:/app/state:ro
+    stop_grace_period: 5s

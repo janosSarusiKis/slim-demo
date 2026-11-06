@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Green Valley Farm</title>
+<style>
+  :root {
+    --bg: #f4f1e8; --card: #fffdf7; --ink: #23301f; --muted: #6b7565; --line: #e2dccb;
+    --green: #2f8f46; --green-soft: #e3f3e3; --amber: #c27a00; --amber-soft: #fff1d6;
+    --red: #c0392b; --red-soft: #fbe3e0; --blue: #2470b3; --blue-soft: #e1eefa;
+    --soil: #8a5a2b; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161a14; --card: #20261d; --ink: #e8eee2; --muted: #9aa592; --line: #333c2e;
+      --green: #5cc36f; --green-soft: #1f3a23; --amber: #f0a830; --amber-soft: #3d2f12;
+      --red: #ef6b5b; --red-soft: #432019; --blue: #6aaee8; --blue-soft: #18304a; --soil: #c48a52;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 16px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { padding: 18px 28px 8px; display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+  h1 { margin: 0; font-size: 28px; }
+  .tagline { color: var(--muted); }
+  .conn { margin-left: auto; font-size: 14px; color: var(--muted); }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 20px; padding: 12px 28px 28px; }
+  @media (max-width: 1100px) { main { grid-template-columns: 1fr; } }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; align-content: start; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px;
+          border-top: 5px solid var(--line); transition: border-color .3s, opacity .3s; }
+  .card.online { border-top-color: var(--green); }
+  .card.backup { border-top-color: var(--amber); }
+  .card.offline { border-top-color: var(--red); opacity: .75; }
+  .head { display: flex; align-items: center; gap: 8px; }
+  .head h2 { margin: 0; font-size: 19px; }
+  .pill { margin-left: auto; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 99px;
+          background: var(--line); color: var(--muted); white-space: nowrap; }
+  .online .pill { background: var(--green-soft); color: var(--green); }
+  .backup .pill { background: var(--amber-soft); color: var(--amber); }
+  .offline .pill { background: var(--red-soft); color: var(--red); }
+  .name { font: 13px var(--mono); color: var(--muted); margin: 4px 0 2px; }
+  .where { font-size: 13px; color: var(--muted); }
+  .where b { color: var(--ink); font-weight: 600; }
+  .lang { font: 600 11px var(--mono); padding: 1px 6px; border-radius: 5px; background: var(--blue-soft); color: var(--blue); }
+  .lang.go { background: #dff5f7; color: #00809a; }
+  .lang.dotnet { background: #eee5fb; color: #6a3fb8; }
+  @media (prefers-color-scheme: dark) {
+    .lang.go { background: #123a40; color: #4fd1e6; }
+    .lang.dotnet { background: #2e2147; color: #b99af0; }
+  }
+  .body { margin-top: 12px; min-height: 64px; }
+  .row { display: flex; justify-content: space-between; gap: 8px; margin: 4px 0; }
+  .row span:first-child { color: var(--muted); }
+  .big { font-size: 22px; font-weight: 700; }
+  .bar { position: relative; height: 12px; border-radius: 6px; background: var(--line); overflow: hidden; margin: 6px 0 2px; }
+  .bar i { position: absolute; inset: 0 auto 0 0; background: var(--blue); border-radius: 6px; transition: width .4s; }
+  .bar.dry i { background: var(--soil); }
+  .bar b { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--ink); opacity: .35; }
+  .warn { color: var(--amber); font-weight: 600; }
+  .bad { color: var(--red); font-weight: 600; }
+  .good { color: var(--green); font-weight: 600; }
+  .note { font-size: 13px; color: var(--amber); margin-top: 6px; }
+  .actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  button { font: inherit; font-size: 14px; font-weight: 600; padding: 7px 12px; border-radius: 9px; cursor: pointer;
+           border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+  button:hover { border-color: var(--green); }
+  button:disabled { opacity: .5; cursor: default; }
+  .log { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px;
+         max-height: calc(100vh - 110px); overflow-y: auto; position: sticky; top: 12px; }
+  .log h2 { margin: 0 0 10px; font-size: 19px; }
+  .entry { padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px; animation: pop .4s; }
+  .entry .meta { font-size: 12px; color: var(--muted); }
+  .entry .who { font-weight: 600; color: var(--ink); }
+  .entry.warn { border-left: 3px solid var(--amber); padding-left: 8px; }
+  .entry.error { border-left: 3px solid var(--red); padding-left: 8px; }
+  .empty { color: var(--muted); font-size: 14px; }
+  @keyframes pop { from { background: var(--green-soft); } to { background: transparent; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>🍅 Green Valley Farm</h1>
+  <span class="tagline">Every agent is reached by its SLIM name. No open ports, no VPN. Python, Go and .NET.</span>
+  <span class="conn" id="conn">connecting…</span>
+</header>
+<main>
+  <section class="grid" id="grid"></section>
+  <aside class="log">
+    <h2>Live conversation</h2>
+    <div id="log"><p class="empty">Waiting for the agents…</p></div>
+  </aside>
+</main>
+<script>
+const ORDER = ["gh1", "gh2", "scout", "agronomist", "sprayer", "guardian"];
+const TITLES = { gh1: "Greenhouse 1", gh2: "Greenhouse 2", scout: "Pest scout",
+                 agronomist: "Agronomist", sprayer: "Sprayer", guardian: "Guardian" };
+const ICONS = { gh1: "🌱", gh2: "🌱", scout: "🔍", agronomist: "🧑‍🌾", sprayer: "🚿", guardian: "🛡️" };
+const LABEL = { assistant: "Farm assistant", ...TITLES };
+
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const clock = t => t ? new Date(t * 1000).toLocaleTimeString([], { hour12: false }) : "–";
+const cards = {};
+
+async function act(target, action, extra = {}, btn) {
+  if (btn) btn.disabled = true;
+  try {
+    await fetch("/api/action", { method: "POST", headers: { "Content-Type": "application/json" },
+                                 body: JSON.stringify({ target, action, ...extra }) });
+  } finally { if (btn) setTimeout(() => btn.disabled = false, 800); }
+}
+
+function buildCard(id) {
+  const el = document.createElement("article");
+  el.className = "card";
+  el.innerHTML = `<div class="head"><span>${ICONS[id]}</span><h2>${TITLES[id]}</h2><span class="pill">waiting</span></div>
+    <div class="name"></div><div class="where"></div><div class="body"></div><div class="actions"></div>`;
+  if (id.startsWith("gh")) {
+    const actions = el.querySelector(".actions");
+    const water = document.createElement("button");
+    water.textContent = "💧 Water zone A (10 s)";
+    water.onclick = () => act(id, "water", { seconds: 10 }, water);
+    const bugs = document.createElement("button");
+    bugs.textContent = "🪲 Release whiteflies";
+    bugs.onclick = () => act(id, "release_bugs", {}, bugs);
+    actions.append(water, bugs);
+  }
+  document.getElementById("grid").append(el);
+  return el;
+}
+
+const bodies = {
+  greenhouse: s => `
+    <div class="row"><span>Soil moisture</span><span class="big ${s.dry ? "bad" : ""}">${s.moisture.toFixed(1)} %</span></div>
+    <div class="bar ${s.dry ? "dry" : ""}"><i style="width:${Math.min(100, s.moisture / 65 * 100)}%"></i><b style="left:${25 / 65 * 100}%"></b></div>
+    <div class="row"><span>Temperature</span><span>${s.temp.toFixed(1)} °C</span></div>
+    <div class="row"><span>Whiteflies on traps</span><span class="${s.whiteflies >= 30 ? "bad" : "good"}">${s.whiteflies}</span></div>
+    ${s.watering_for ? `<div class="row"><span>💧 Watering</span><span>${s.watering_for} s left</span></div>` : ""}
+    ${s.spraying_for ? `<div class="row"><span>🚿 Spraying</span><span>${esc(s.spray_product)}, ${s.spraying_for} s</span></div>` : ""}
+    ${s.role === "backup" ? `<div class="note">Backup box in charge since ${clock(s.took_over_at)}, started from readings saved at ${clock(s.data_as_of)}</div>` : ""}`,
+  scout: s => Object.entries(s.traps).map(([gh, n]) => `
+    <div class="row"><span>${gh.toUpperCase()} traps</span><span class="${n == null ? "warn" : n >= s.threshold ? "bad" : "good"}">${n == null ? "no reading" : n + " whiteflies"}</span></div>`).join("")
+    + Object.entries(s.open_cases).map(([gh, c]) => `<div class="note">${gh.toUpperCase()}: ${esc(c)}</div>`).join(""),
+  agronomist: s => s.last_advice
+    ? `<div class="row"><span>Last advice</span><span>${clock(s.last_advice.at)}</span></div><div class="big" style="font-size:17px">${esc(s.last_advice.advice)}</div>`
+    : `<div class="row"><span>Cases today</span><span>0</span></div><p class="empty">No pest reports yet.</p>`,
+  sprayer: s => `
+    <div class="row"><span>State</span><span class="${s.busy_for ? "warn" : "good"}">${s.busy_for ? `spraying, ${s.busy_for} s left` : "idle in the shed"}</span></div>
+    ${s.last_job ? `<div class="row"><span>Last job</span><span>${s.last_job.greenhouse.toUpperCase()} · ${esc(s.last_job.product)}</span></div>
+    <div class="row"><span>Ordered by</span><span>${esc(LABEL[s.last_job.ordered_by] || s.last_job.ordered_by)}</span></div>` : ""}`,
+  guardian: s => Object.entries(s.health).map(([gh, h]) => `
+    <div class="row"><span>${gh.toUpperCase()}</span><span class="${h === "healthy" ? "good" : h.includes("backup") ? "warn" : "bad"}">${esc(h)}</span></div>`).join("")
+    + `<div class="row"><span>Backup boxes</span><span>${Object.entries(s.backups).filter(([, b]) => b).map(([gh]) => gh.toUpperCase()).join(", ") || "none"}</span></div>`,
+};
+
+function renderCard(id, a) {
+  const el = cards[id] ||= buildCard(id);
+  const s = a.status;
+  const backup = a.online && s && s.role === "backup";
+  el.className = "card " + (!a.online ? (s ? "offline" : "") : backup ? "backup" : "online");
+  el.querySelector(".pill").textContent = !a.online ? (s ? "not answering" : "waiting") : backup ? "backup box" : `online · ${a.ms} ms`;
+  if (!s) return;
+  el.querySelector(".name").textContent = s.slim_name;
+  el.querySelector(".where").innerHTML = `<b>${esc(s.location)}</b> · ${esc(s.host)} · <span class="lang ${{ Go: "go", ".NET": "dotnet" }[s.lang] || ""}">${esc(s.lang)}</span>`;
+  el.querySelector(".body").innerHTML = bodies[s.kind] ? bodies[s.kind](s) : "";
+}
+
+let shownLog = "";
+function renderLog(entries) {
+  const key = entries.map(e => e.t).join();
+  if (key === shownLog) return;
+  shownLog = key;
+  document.getElementById("log").innerHTML = entries.length ? entries.map(e => `
+    <div class="entry ${e.level}">
+      <div class="meta">${clock(e.t)} · <span class="who">${esc(LABEL[e.from] || e.from)}</span>${e.to ? ` → <span class="who">${esc(LABEL[e.to] || e.to)}</span>` : ""}</div>
+      <div>${esc(e.text)}</div>
+    </div>`).join("") : `<p class="empty">Nothing has happened yet.</p>`;
+}
+
+function connect() {
+  const conn = document.getElementById("conn");
+  const source = new EventSource("/api/stream");
+  source.onopen = () => conn.textContent = "● live";
+  source.onerror = () => conn.textContent = "reconnecting…";
+  source.onmessage = msg => {
+    const data = JSON.parse(msg.data);
+    ORDER.forEach(id => renderCard(id, data.agents[id]));
+    renderLog(data.log);
+  };
+}
+connect();
+</script>
+</body>
+</html>

@@ -94,7 +94,7 @@ async def main() -> None:
         started = time.perf_counter()
         try:
             answer = await asyncio.wait_for(ask(client, args.question), args.timeout)
-        except Exception as e:  # noqa: BLE001 - any failure means "try again"
+        except Exception as e:  # any failure means "try again"
             reason = "timeout" if isinstance(e, TimeoutError) else type(e).__name__
             print(f"{DIM}#{n:<4}{RESET}{RED}✖ {reason}, retrying…{RESET}", flush=True)
             # Drop the old channel: the next call opens a fresh session to the

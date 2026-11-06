@@ -7,6 +7,8 @@ requires-python = ">=3.12"
 dependencies = [
     "slima2a==0.9.3",
     "slim-bindings>=3.3.9,<4",
+    "starlette>=0.46",
+    "uvicorn>=0.34",
 ]
 
 [dependency-groups]
@@ -17,3 +19,6 @@ package = false
 
 [tool.ruff.lint]
 extend-select = ["I", "ASYNC", "SIM", "B"]
+# Agents treat any failed call to another agent as "not answering" on purpose,
+# take explicit timeouts, and write tiny state files from their loops.
+ignore = ["BLE001", "ASYNC109", "ASYNC240"]

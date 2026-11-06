@@ -40,6 +40,36 @@ tasks:
     desc: Stop the Go container
     cmds: [docker compose stop agent-go]
 
+  farm:build:
+    desc: Build the farm images (do this before the demo)
+    cmds: [docker compose --profile agent --profile farm --profile backup build]
+
+  farm:up:
+    desc: Start the SLIM node, GH2, pest scout, sprayer and agronomist in Docker
+    cmds: [docker compose --profile farm up -d slim gh2 scout sprayer agronomist]
+
+  gh1:
+    desc: Run Greenhouse 1's main box on this machine
+    env: {AGENT_LOCATION: GH1 main box}
+    cmds:
+      - uv run python -m farm.greenhouse --id gh1
+
+  guardian:
+    desc: Run the guardian (needs Docker on this machine to start GH1's backup box)
+    env: {AGENT_LOCATION: farm office}
+    cmds:
+      - uv run python -m farm.guardian
+
+  dashboard:
+    desc: Run the farm assistant dashboard on http://localhost:8080
+    env: {AGENT_LOCATION: farmer's laptop}
+    cmds:
+      - uv run python -m farm.assistant
+
+  farm:down:
+    desc: Stop all farm containers
+    cmds: [docker compose --profile farm --profile backup down]
+
   ports:
     desc: Show which processes on this machine listen on TCP ports
     cmds: [lsof -nP -iTCP -sTCP:LISTEN]
